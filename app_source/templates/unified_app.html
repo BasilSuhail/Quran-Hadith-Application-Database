@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Quran & Hadith Database</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuse.js for fast fuzzy searching -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <style>
+        /* Custom styles for tabs */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #f9fafb;
+            z-index: 10;
+        }
+        #modal {
+            display: none;
+        }
+        .rtl {
+            direction: rtl;
+            text-align: right;
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+<body class="h-full p-4 md:p-8 font-sans text-gray-900">
+    <div class="max-w-7xl mx-auto">
+
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-blue-600">Unified Quran & Hadith Database</h1>
+            <p class="text-gray-600">Powered by SQLite, Flask & AI Semantic Search</p>
+        </header>
+
+        <div id="app-section">
+            <!-- Tab Buttons -->
+            <div class="mb-4 border-b border-gray-200">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button data-tab="search" class="tab-button active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        🔍 AI Search
+                    </button>
+                    <button data-tab="translations" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Quran Translations
+                    </button>
+                    <button data-tab="surah-info" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Surah Info
+                    </button>
+                    <button data-tab="names-god" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Names of God
+                    </button>
+                    <button data-tab="hadiths" class="tab-button whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        📜 Hadiths
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content Panels -->
+
+            <!-- 0. AI Search Tab -->
+            <div id="search-content" class="tab-content active">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">🤖 AI-Powered Unified Search</h2>
+                        <p class="text-gray-600">Search across Quran & Hadith - powered by semantic vector search</p>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="mb-6">
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="ai-search-input"
+                                   class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., 'verses about patience' or 'what does Islam say about charity?'"
+                                   onkeypress="if(event.key==='Enter') performUnifiedSearch()">
+                            <button onclick="performUnifiedSearch()"
+                                    class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                Search
+                            </button>
+                        </div>
+                        <div class="flex gap-3 mb-3">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="include-quran" checked class="mr-2">
+                                <span class="text-sm">Include Quran</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="include-hadith" checked class="mr-2">
+                                <span class="text-sm">Include Hadith</span>
+                            </label>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-sm text-gray-600">Try:</span>
+                            <button onclick="document.getElementById('ai-search-input').value='mercy and forgiveness'; performUnifiedSearch()"
+                                    class="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full">
+                                mercy and forgiveness
+                            </button>
+                            <button onclick="document.getElementById('ai-search-input').value='patience in hardship'; performUnifiedSearch()"
+                                    class="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full">
+                                patience in hardship
+                            </button>
+                            <button onclick="document.getElementById('ai-search-input').value='charity and helping others'; performUnifiedSearch()"
+                                    class="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full">
+                                charity and helping others
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="ai-search-results" class="space-y-4">
+                        <div class="text-center text-gray-400 py-12">
+                            <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <p class="mt-4 text-lg">Enter a question or topic to search both Quran and Hadith</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Translations Tab -->
+            <div id="translations-content" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label for="surah-select" class="block text-sm font-medium text-gray-700">Select Surah</label>
+                        <select id="surah-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="">All Surahs (loads first 100 verses)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="language-select" class="block text-sm font-medium text-gray-700">Select Language</label>
+                        <select id="language-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="english">English</option>
+                            <option value="urdu">Urdu</option>
+                            <option value="persian">Persian (Farsi)</option>
+                            <option value="turkish">Turkish</option>
+                            <option value="russian">Russian</option>
+                            <option value="german">German</option>
+                            <option value="dutch">Dutch</option>
+                            <option value="french">French</option>
+                            <option value="spanish">Spanish</option>
+                            <option value="chinese">Chinese</option>
+                            <option value="hindi">Hindi</option>
+                            <option value="indonesian">Indonesian</option>
+                            <option value="italian">Italian</option>
+                            <option value="malay">Malay</option>
+                            <option value="malayalam">Malayalam</option>
+                            <option value="norwegian">Norwegian</option>
+                            <option value="pashto">Pashto</option>
+                            <option value="polish">Polish</option>
+                            <option value="portuguese">Portuguese</option>
+                            <option value="sindhi">Sindhi</option>
+                            <option value="swahili">Swahili</option>
+                            <option value="swedish">Swedish</option>
+                            <option value="uzbek">Uzbek</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="translation-select" class="block text-sm font-medium text-gray-700">Select Translation</label>
+                        <select id="translation-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <!-- Options will be populated by javascript -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="translations-search" class="block text-sm font-medium text-gray-700">Search Text</label>
+                        <input type="text" id="translations-search" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Search in loaded verses...">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <button id="load-all-verses-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Load All Verses (6,236 total)
+                    </button>
+                    <span id="load-verses-status" class="ml-3 text-sm text-gray-600"></span>
+                </div>
+                <div class="max-h-[70vh] overflow-auto shadow border-b border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Surah</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ayat</th>
+                                <th id="translation-header" scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Translation (Saheeh International)
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Arabic</th>
+                            </tr>
+                        </thead>
+                        <tbody id="translations-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows injected by JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="translations-loader" class="p-6 text-center text-gray-500">Loading data...</div>
+                </div>
+            </div>
+
+            <!-- 2. Surah Info Tab -->
+            <div id="surah-info-content" class="tab-content">
+                <input type="text" id="surah-info-search" class="mb-4 block w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Search by number, title, or place...">
+                <div class="max-h-[70vh] overflow-auto shadow border-b border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">English Title</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arabic Title</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verses</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rukus</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revelation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="surah-info-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows injected by JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="surah-info-loader" class="p-6 text-center text-gray-500">Loading data...</div>
+                </div>
+            </div>
+
+            <!-- 3. Names of God Tab -->
+            <div id="names-god-content" class="tab-content">
+                <input type="text" id="names-god-search" class="mb-4 block w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Search by name, meaning, or summary...">
+                <div class="max-h-[70vh] overflow-auto shadow border-b border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arabic Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">English Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meaning</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Short Summary</th>
+                            </tr>
+                        </thead>
+                        <tbody id="names-god-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows injected by JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="names-god-loader" class="p-6 text-center text-gray-500">Loading data...</div>
+                </div>
+            </div>
+
+            <!-- 4. Hadiths Tab -->
+            <div id="hadiths-content" class="tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label for="hadith-collection-select" class="block text-sm font-medium text-gray-700">Select Collection</label>
+                        <select id="hadith-collection-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="bukhari">Sahih al-Bukhari (7,249)</option>
+                            <option value="muslim">Sahih Muslim (2,917)</option>
+                            <option value="ahmad">Musnad Ahmad (1,349)</option>
+                            <option value="tirmidhi">Jami at-Tirmidhi (3,917)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="hadith-per-page" class="block text-sm font-medium text-gray-700">Items per page</label>
+                        <select id="hadith-per-page" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="hadith-search" class="block text-sm font-medium text-gray-700">Search Text</label>
+                        <input type="text" id="hadith-search" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Search in loaded hadiths...">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <button id="load-all-hadiths-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Load All from Current Collection
+                    </button>
+                    <span id="load-hadiths-status" class="ml-3 text-sm text-gray-600"></span>
+                </div>
+                <div class="max-h-[70vh] overflow-auto shadow border-b border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hadith Text</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hadith-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Rows injected by JavaScript -->
+                        </tbody>
+                    </table>
+                    <div id="hadith-loader" class="p-6 text-center text-gray-500">Loading data...</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal for details -->
+    <div id="modal" class="fixed z-10 inset-0 overflow-y-auto">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Item Details
+                            </h3>
+                            <div class="mt-4 max-h-[60vh] overflow-y-auto">
+                                <div id="modal-body" class="text-sm text-gray-600">
+                                    <!-- Modal content injected here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="modal-close-button" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // This app is now powered by a Flask backend and SQLite!
+
+        let allTranslations = [];
+        let allNames = [];
+        let allSurahInfo = [];
+        let allHadiths = [];
+
+        // Fuse.js instances for fast fuzzy searching
+        let fuseTrans, fuseNames, fuseSurah, fuseHadith;
+
+        // DOM Elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        const translationsTableBody = document.getElementById('translations-table-body');
+        const translationsLoader = document.getElementById('translations-loader');
+        const translationsSearch = document.getElementById('translations-search');
+        const translationSelect = document.getElementById('translation-select');
+        const translationHeader = document.getElementById('translation-header');
+
+        const surahInfoTableBody = document.getElementById('surah-info-table-body');
+        const surahInfoLoader = document.getElementById('surah-info-loader');
+        const surahInfoSearch = document.getElementById('surah-info-search');
+
+        const namesGodTableBody = document.getElementById('names-god-table-body');
+        const namesGodLoader = document.getElementById('names-god-loader');
+        const namesGodSearch = document.getElementById('names-god-search');
+
+        const hadithTableBody = document.getElementById('hadith-table-body');
+        const hadithLoader = document.getElementById('hadith-loader');
+        const hadithSearch = document.getElementById('hadith-search');
+
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const modalTitle = document.getElementById('modal-title');
+        const modalCloseButton = document.getElementById('modal-close-button');
+
+        const languageSelect = document.getElementById('language-select');
+        const surahSelect = document.getElementById('surah-select');
+        const hadithCollectionSelect = document.getElementById('hadith-collection-select');
+
+        const translations = {
+            english: [
+                { value: "Saheeh International", text: "Saheeh International" },
+                { value: "Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan", text: "Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan" },
+                { value: "Abul Ala Maududi", text: "Abul Ala Maududi" },
+                { value: "Wahiduddin Khan", text: "Wahiduddin Khan" },
+                { value: "Translation - Marmaduke Pickthall", text: "Marmaduke Pickthall" },
+                { value: "Translation - Muhammad Tahir-ul-Qadri", text: "Muhammad Tahir-ul-Qadri" },
+                { value: "Translation - Arthur J", text: "Arthur J. Arberry" },
+                { value: "Abdullah Yusuf Ali", text: "Abdullah Yusuf Ali" },
+                { value: "Mohammad Habib Shakir", text: "Mohammad Habib Shakir" },
+                { value: "Talal Itani", text: "Talal Itani" },
+                { value: "Abdul Majid Daryabadi", text: "Abdul Majid Daryabadi" },
+                { value: "Ahmed Ali", text: "Ahmed Ali" },
+                { value: "Ahmed Raza Khan", text: "Ahmed Raza Khan" },
+                { value: "Ali Quli Qarai", text: "Ali Quli Qarai" },
+                { value: "Hasan al-Fatih Qaribullah and Ahmad Darwish", text: "Hasan al-Fatih Qaribullah and Ahmad Darwish" },
+                { value: "Muhammad Sarwar", text: "Muhammad Sarwar" },
+                { value: "Safi-ur-Rahman al-Mubarakpuri", text: "Safi-ur-Rahman al-Mubarakpuri" }
+            ],
+            urdu: [
+                { value: "Translation - Abul A'ala Maududi (Urdu)", text: "Abul A'ala Maududi" },
+                { value: "Translation - Fateh Muhammad Jalandhry (Urdu)", text: "Fateh Muhammad Jalandhry" },
+                { value: "Translation - Tahir ul Qadri (Urdu)", text: "Tahir ul Qadri" }
+            ],
+            persian: [
+                { value: "Translation - AbdolMohammad Ayati (Persian)", text: "AbdolMohammad Ayati" },
+                { value: "Translation - Naser Makarem Shirazi (Persian)", text: "Naser Makarem Shirazi" },
+                { value: "Translation - Mohammad Mahdi Fooladvand (Persian)", text: "Mohammad Mahdi Fooladvand" },
+                { value: "Translation - Abolfazl Bahrampour (Persian)", text: "Abolfazl Bahrampour" },
+                { value: "Translation - Baha'oddin Khorramshahi (Persian)", text: "Baha'oddin Khorramshahi" },
+                { value: "Translation - Hussain Ansarian (Persian)", text: "Hussain Ansarian" },
+                { value: "Translation - Mahdi Elahi Ghomshei (Persian)", text: "Mahdi Elahi Ghomshei" },
+                { value: "Translation - Mohammad Sadeqi Tehrani (Persian)", text: "Mohammad Sadeqi Tehrani" },
+                { value: "Translation - Mohsen Gharaati (Persian)", text: "Mohsen Gharaati" },
+                { value: "Translation - Mostafa Khorramdel (Persian)", text: "Mostafa Khorramdel" },
+                { value: "Translation - Sayyed Jalaloddin Mojtabavi (Persian)", text: "Sayyed Jalaloddin Mojtabavi" },
+                { value: "Translation - Sayyed Mohammad Reza Safavi (Persian)", text: "Sayyed Mohammad Reza Safavi" }
+            ],
+            turkish: [
+                { value: "Translation - Diyanet Isleri (Turkish)", text: "Diyanet Isleri" },
+                { value: "Translation - Elmalili Hamdi Yazir (Turkish)", text: "Elmalili Hamdi Yazir" },
+                { value: "Translation - Abdulbaki Golpinarli (Turkish)", text: "Abdulbaki Golpinarli" },
+                { value: "Translation - Alİ Bulaç (Turkish)", text: "Alİ Bulaç" },
+                { value: "Translation - Edip Yüksel (Turkish)", text: "Edip Yüksel" },
+                { value: "Translation - Muhammet Abay (Turkish)", text: "Muhammet Abay" },
+                { value: "Translation - Suat Yildirim (Turkish)", text: "Suat Yildirim" },
+                { value: "Translation - Suleyman Ates (Turkish)", text: "Suleyman Ates" },
+                { value: "Translation - Yasar Nuri Ozturk (Turkish)", text: "Yasar Nuri Ozturk" }
+            ],
+            russian: [
+                { value: "Translation - Abu Adel (Russian)", text: "Abu Adel" },
+                { value: "Translation - Elmir Kuliev (with Abd ar-Rahman as-Saadi's commentaries) (Russian)", text: "Elmir Kuliev" },
+                { value: "Translation - Gordy Semyonovich Sablukov (Russian)", text: "Gordy Semyonovich Sablukov" },
+                { value: "Translation - Ignaty Yulianovich Krachkovsky (Russian)", text: "Ignaty Yulianovich Krachkovsky" },
+                { value: "Translation - Magomed-Nuri Osmanovich Osmanov (Russian)", text: "Magomed-Nuri Osmanovich Osmanov" },
+                { value: "Translation - Muslim Religious Board of the Republiс of Tatarstan (Russian)", text: "Muslim Religious Board of the Republiс of Tatarstan" }
+            ],
+            german: [
+                { value: "Translation - A. S. F. Bubenheim and N. Elyas (German)", text: "A. S. F. Bubenheim and N. Elyas" },
+                { value: "Translation - Amir Zaidan (German)", text: "Amir Zaidan" },
+                { value: "Translation - Abu Rida Muhammad ibn Ahmad ibn Rassoul (German)", text: "Abu Rida Muhammad ibn Ahmad ibn Rassoul" },
+                { value: "Translation - Adel Theodor Khoury (German)", text: "Adel Theodor Khoury" }
+            ],
+            dutch: [
+                { value: "Translation - Fred Leemhuis (Dutch)", text: "Fred Leemhuis" },
+                { value: "Translation - Salomo Keyzer (Dutch)", text: "Salomo Keyzer" },
+                { value: "Translation - Sofian S. Siregar (Dutch)", text: "Sofian S. Siregar" }
+            ],
+            french: [
+                { value: "Translation - Muhammad Hamidullah (French)", text: "Muhammad Hamidullah" }
+            ],
+            spanish: [
+                { value: "Translation - Julio Cortes (Spanish)", text: "Julio Cortes" },
+                { value: "Translation - Raúl González Bórnez (Spanish)", text: "Raúl González Bórnez" }
+            ],
+            chinese: [
+                { value: "Translation - Ma Jian (Traditional) (Chinese)", text: "Ma Jian (Traditional)" },
+                { value: "Translation - Ma Jian (Chinese)", text: "Ma Jian" }
+            ],
+            hindi: [
+                { value: "Translation - Muhammad Farooq Khan and Muhammad Ahmed (Hindi)", text: "Muhammad Farooq Khan and Muhammad Ahmed" },
+                { value: "Translation - Suhel Farooq Khan and Saifur Rahman Nadwi (Hindi)", text: "Suhel Farooq Khan and Saifur Rahman Nadwi" }
+            ],
+            indonesian: [
+                { value: "Translation - Indonesian Ministry of Religious Affairs (Indonesian)", text: "Indonesian Ministry of Religious Affairs" },
+                { value: "Translation - Jalal ad-Din al-Mahalli and Jalal ad-Din as-Suyuti (Indonesian)", text: "Jalal ad-Din al-Mahalli and Jalal ad-Din as-Suyuti" }
+            ],
+            italian: [
+                { value: "Translation - Hamza Roberto Piccardo (Italian)", text: "Hamza Roberto Piccardo" }
+            ],
+            malay: [
+                { value: "Translation - Abdullah Muhammad Basmeih (Malay)", text: "Abdullah Muhammad Basmeih" }
+            ],
+            malayalam: [
+                { value: "Translation - Cheriyamundam Abdul Hameed and Kunhi Mohammed Parappoor (Malayalam)", text: "Cheriyamundam Abdul Hameed and Kunhi Mohammed Parappoor" },
+                { value: "Translation - Muhammad Karakunnu and Vanidas Elayavoor (Malayalam)", text: "Muhammad Karakunnu and Vanidas Elayavoor" }
+            ],
+            norwegian: [
+                { value: "Translation - Einar Berg (Norwegian)", text: "Einar Berg" }
+            ],
+            pashto: [
+                { value: "Translation - Abdulwali Khan (Pashto)", text: "Abdulwali Khan" }
+            ],
+            polish: [
+                { value: "Translation - Józefa Bielawskiego (Polish)", text: "Józefa Bielawskiego" }
+            ],
+            portuguese: [
+                { value: "Translation - Samir El-Hayek (Portuguese)", text: "Samir El-Hayek" }
+            ],
+            sindhi: [
+                { value: "Translation - Taj Mehmood Amroti (Sindhi)", text: "Taj Mehmood Amroti" }
+            ],
+            swahili: [
+                { value: "Translation - Ali Muhsin Al-Barwani (Swahili)", text: "Ali Muhsin Al-Barwani" }
+            ],
+            swedish: [
+                { value: "Translation - Knut Bernström (Swedish)", text: "Knut Bernström" }
+            ],
+            uzbek: [
+                { value: "Translation - Muhammad Sodik Muhammad Yusuf (Uzbek)", text: "Muhammad Sodik Muhammad Yusuf" }
+            ]
+        };
+
+        function populateTranslatorDropdown(language) {
+            translationSelect.innerHTML = '';
+            translations[language].forEach(translator => {
+                const option = document.createElement('option');
+                option.value = translator.value;
+                option.textContent = translator.text;
+                translationSelect.appendChild(option);
+            });
+        }
+
+        function populateSurahDropdown(surahs) {
+            surahs.forEach(surah => {
+                const option = document.createElement('option');
+                option.value = surah.SurahNumber;
+                option.textContent = `${surah.SurahNumber}. ${surah.EnglishTitle}`;
+                surahSelect.appendChild(option);
+            });
+        }
+
+        // Handle Surah selection - load specific surah verses
+        surahSelect.addEventListener('change', async () => {
+            const surahNum = surahSelect.value;
+            translationsLoader.style.display = 'block';
+            translationsLoader.textContent = 'Loading surah...';
+
+            try {
+                const url = surahNum ? `/quran/translations?surah=${surahNum}&per_page=1000` : '/quran/translations?page=1&per_page=100';
+                const res = await fetch(url);
+                const data = await res.json();
+                allTranslations = data.translations;
+                renderTranslationsTable(allTranslations);
+
+                if (surahNum) {
+                    translationsLoader.innerHTML = `<div class="text-sm text-gray-600">Showing all ${data.total} verses from this Surah</div>`;
+                } else {
+                    translationsLoader.innerHTML = `
+                        <div class="text-sm text-gray-600 p-3 bg-blue-50 rounded">
+                            📖 Showing first ${allTranslations.length} verses of ${data.total} total.
+                            Select a Surah above for complete browsing.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                translationsLoader.innerHTML = '<div class="text-red-600">Error loading surah</div>';
+            }
+        });
+
+        // Handle Hadith collection selection
+        hadithCollectionSelect.addEventListener('change', loadHadithsForCollection);
+        document.getElementById('hadith-per-page').addEventListener('change', loadHadithsForCollection);
+
+        async function loadHadithsForCollection() {
+            const collection = hadithCollectionSelect.value;
+            const perPage = document.getElementById('hadith-per-page').value;
+            hadithLoader.style.display = 'block';
+            hadithLoader.textContent = 'Loading hadiths...';
+
+            try {
+                const res = await fetch(`/hadith/${collection}?page=1&per_page=${perPage}`);
+                const data = await res.json();
+                allHadiths = data.hadiths;
+                renderHadithsTable(allHadiths);
+                hadithLoader.innerHTML = `<div class="text-sm text-gray-600">Showing ${data.hadiths.length} of ${data.total} hadiths</div>`;
+            } catch (error) {
+                hadithLoader.innerHTML = '<div class="text-red-600">Error loading hadiths</div>';
+            }
+        }
+
+        languageSelect.addEventListener('change', () => {
+            const selectedLanguage = languageSelect.value;
+            populateTranslatorDropdown(selectedLanguage);
+            renderTranslationsTable(allTranslations);
+        });
+
+        // Load All Verses button
+        document.getElementById('load-all-verses-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('load-all-verses-btn');
+            const status = document.getElementById('load-verses-status');
+
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            status.textContent = 'Fetching all 6,236 verses, please wait...';
+            translationsLoader.style.display = 'block';
+            translationsLoader.textContent = 'Loading all verses...';
+
+            try {
+                const res = await fetch('/quran/translations?per_page=10000');
+                const data = await res.json();
+                allTranslations = data.translations;
+                renderTranslationsTable(allTranslations);
+
+                btn.textContent = 'Reload All Verses';
+                btn.disabled = false;
+                status.textContent = `✓ Loaded all ${allTranslations.length} verses`;
+                status.classList.add('text-green-600');
+                translationsLoader.innerHTML = `<div class="text-sm text-green-600 p-3 bg-green-50 rounded">✓ All ${allTranslations.length} verses loaded. You can now search through the entire Quran.</div>`;
+            } catch (error) {
+                btn.textContent = 'Load All Verses (6,236 total)';
+                btn.disabled = false;
+                status.textContent = '✗ Error loading verses';
+                status.classList.add('text-red-600');
+                translationsLoader.innerHTML = '<div class="text-red-600">Error loading all verses</div>';
+            }
+        });
+
+        // Load All Hadiths button
+        document.getElementById('load-all-hadiths-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('load-all-hadiths-btn');
+            const status = document.getElementById('load-hadiths-status');
+            const collection = hadithCollectionSelect.value;
+
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            status.textContent = 'Fetching all hadiths from collection...';
+            hadithLoader.style.display = 'block';
+            hadithLoader.textContent = 'Loading all hadiths...';
+
+            try {
+                const res = await fetch(`/hadith/${collection}?per_page=10000`);
+                const data = await res.json();
+                allHadiths = data.hadiths;
+                renderHadithsTable(allHadiths);
+
+                btn.textContent = 'Reload All';
+                btn.disabled = false;
+                status.textContent = `✓ Loaded all ${allHadiths.length} hadiths`;
+                status.classList.add('text-green-600');
+                hadithLoader.innerHTML = `<div class="text-sm text-green-600 p-3 bg-green-50 rounded">✓ All ${allHadiths.length} hadiths loaded from ${collection}. You can now search through all of them.</div>`;
+            } catch (error) {
+                btn.textContent = 'Load All from Current Collection';
+                btn.disabled = false;
+                status.textContent = '✗ Error loading hadiths';
+                status.classList.add('text-red-600');
+                hadithLoader.innerHTML = '<div class="text-red-600">Error loading all hadiths</div>';
+            }
+        });
+
+        // Initialize App
+        function initializeApp() {
+            populateTranslatorDropdown('english');
+            fetchAllData();
+        }
+
+        // Tab Switching
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                button.classList.add('active');
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(`${tabId}-content`).classList.add('active');
+
+                // Load hadith when tab is opened
+                if (tabId === 'hadiths' && allHadiths.length === 0) {
+                    loadHadithsForCollection();
+                }
+            });
+        });
+
+        // Data Fetching
+        async function fetchAllData() {
+            try {
+                const [surahInfoRes, namesOfGodRes] = await Promise.all([
+                    fetch('/quran/surah_info'),
+                    fetch('/quran/names_of_allah')
+                ]);
+
+                allSurahInfo = await surahInfoRes.json();
+                allNames = await namesOfGodRes.json();
+
+                populateSurahDropdown(allSurahInfo);
+
+                const translationsRes = await fetch('/quran/translations?page=1&per_page=20');
+                const translationsData = await translationsRes.json();
+                allTranslations = translationsData.translations;
+
+                renderTranslationsTable(allTranslations);
+                renderSurahInfoTable(allSurahInfo);
+                renderNamesTable(allNames);
+
+                translationsLoader.innerHTML = `
+                    <div class="text-sm text-gray-600 p-3 bg-blue-50 rounded">
+                        📖 Showing first ${allTranslations.length} verses. Select a Surah above for complete browsing.
+                    </div>
+                `;
+                surahInfoLoader.style.display = 'none';
+                namesGodLoader.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                translationsLoader.textContent = 'Error loading data.';
+                surahInfoLoader.textContent = 'Error loading data.';
+                namesGodLoader.textContent = 'Error loading data.';
+            }
+        }
+
+        // Rendering Functions
+
+        // Translations
+        function renderTranslationsTable(data) {
+            translationsTableBody.innerHTML = '';
+            const selectedTranslatorKey = translationSelect.value;
+
+            data.forEach(ayah => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 cursor-pointer';
+
+                const translationText = ayah[selectedTranslatorKey] || 'N/A';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${ayah.EnglishTitle || ayah.Name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${ayah.Ayat}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${translationText ? translationText.substring(0, 100) + '...' : 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500 rtl">${ayah.Arabic ? ayah.Arabic.substring(0, 100) + '...' : 'N/A'}</td>
+                `;
+                row.addEventListener('click', () => showModal(ayah, `${ayah.EnglishTitle || ayah.Name} (Ayat ${ayah.Ayat})`));
+                translationsTableBody.appendChild(row);
+            });
+        }
+
+        function filterAndRenderTranslations() {
+            const searchTerm = translationsSearch.value.trim();
+
+            if (!searchTerm) {
+                renderTranslationsTable(allTranslations);
+                return;
+            }
+
+            // Initialize Fuse.js if not already done
+            if (!fuseTrans) {
+                fuseTrans = new Fuse(allTranslations, {
+                    keys: ['Name', 'EnglishTitle', 'Saheeh International', 'Arabic'],
+                    threshold: 0.3,
+                    includeScore: true
+                });
+            }
+
+            const results = fuseTrans.search(searchTerm);
+            const filteredData = results.map(result => result.item);
+            renderTranslationsTable(filteredData);
+        }
+
+        translationsSearch.addEventListener('keyup', filterAndRenderTranslations);
+
+        translationSelect.addEventListener('change', () => {
+            const selectedOptionText = translationSelect.options[translationSelect.selectedIndex].text;
+            translationHeader.textContent = `Translation (${selectedOptionText})`;
+            renderTranslationsTable(allTranslations);
+        });
+
+        // Hadiths
+        function renderHadithsTable(data) {
+            hadithTableBody.innerHTML = '';
+
+            data.forEach(hadith => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 cursor-pointer';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hadith.reference || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${hadith.hadith_text ? hadith.hadith_text.substring(0, 150) + '...' : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hadith.grade || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${hadith.question ? hadith.question.substring(0, 80) + '...' : 'N/A'}</td>
+                `;
+                row.addEventListener('click', () => showModal(hadith, hadith.reference || 'Hadith Details'));
+                hadithTableBody.appendChild(row);
+            });
+        }
+
+        hadithSearch.addEventListener('keyup', () => {
+            const searchTerm = hadithSearch.value.trim();
+
+            if (!searchTerm) {
+                renderHadithsTable(allHadiths);
+                return;
+            }
+
+            // Initialize Fuse.js if not already done
+            if (!fuseHadith) {
+                fuseHadith = new Fuse(allHadiths, {
+                    keys: ['hadith_text', 'reference', 'question', 'grade'],
+                    threshold: 0.4,
+                    includeScore: true
+                });
+            }
+
+            const results = fuseHadith.search(searchTerm);
+            const filteredData = results.map(result => result.item);
+            renderHadithsTable(filteredData);
+        });
+
+        // Surah Info
+        function renderSurahInfoTable(data) {
+            surahInfoTableBody.innerHTML = '';
+            data.forEach(surah => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 cursor-pointer';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${surah.SurahNumber}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${surah.EnglishTitle}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 rtl">${surah.ArabicTitle}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${surah.NumberOfVerses}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${surah.NumberOfRukus}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${surah.PlaceOfRevelation}</td>
+                `;
+                row.addEventListener('click', () => showModal(surah, `${surah.SurahNumber}. ${surah.EnglishTitle}`));
+                surahInfoTableBody.appendChild(row);
+            });
+        }
+
+        function filterAndRenderSurahInfo() {
+            const searchTerm = surahInfoSearch.value.toLowerCase();
+            const filteredData = allSurahInfo.filter(item => {
+                return (
+                    item.SurahNumber?.toString().includes(searchTerm) ||
+                    item.EnglishTitle?.toLowerCase().includes(searchTerm) ||
+                    item.ArabicTitle?.toLowerCase().includes(searchTerm) ||
+                    item.PlaceOfRevelation?.toLowerCase().includes(searchTerm)
+                );
+            });
+            renderSurahInfoTable(filteredData);
+        }
+
+        surahInfoSearch.addEventListener('keyup', filterAndRenderSurahInfo);
+
+        // Names of God
+        function renderNamesTable(data) {
+            namesGodTableBody.innerHTML = '';
+            data.forEach(name => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 cursor-pointer';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 rtl">${name['Arabic Name']}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${name['Name in English']}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${name['Name Meaning']}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${name['Short Summary'] ? name['Short Summary'].substring(0, 100) + '...' : 'N/A'}</td>
+                `;
+                row.addEventListener('click', () => showModal(name, name['Name in English']));
+                namesGodTableBody.appendChild(row);
+            });
+        }
+
+        namesGodSearch.addEventListener('keyup', () => {
+            const searchTerm = namesGodSearch.value.toLowerCase();
+            const filteredData = allNames.filter(item => {
+                return (
+                    item['Arabic Name']?.toLowerCase().includes(searchTerm) ||
+                    item['Name in English']?.toLowerCase().includes(searchTerm) ||
+                    item['Name Meaning']?.toLowerCase().includes(searchTerm) ||
+                    item['Short Summary']?.toLowerCase().includes(searchTerm)
+                );
+            });
+            renderNamesTable(filteredData);
+        });
+
+        // Modal
+        function showModal(dataItem, title) {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = '';
+
+            for (const key in dataItem) {
+                if (key === 'id' || key === 'embedding') continue;
+
+                const value = dataItem[key];
+                const detailEl = document.createElement('div');
+                detailEl.className = 'mb-3';
+
+                const isArabic = key.includes('Arabic') || (value && /[ء-ي]/.test(value));
+
+                detailEl.innerHTML = `
+                    <strong class="block text-xs font-medium text-gray-500 uppercase">${key.replace(/_/g, ' ')}</strong>
+                    <p class="mt-1 text-gray-900 ${isArabic ? 'rtl' : ''}">${value || 'N/A'}</p>
+                `;
+                modalBody.appendChild(detailEl);
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        modalCloseButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Unified AI Search Function
+        window.performUnifiedSearch = async function() {
+            const searchInput = document.getElementById('ai-search-input');
+            const resultsDiv = document.getElementById('ai-search-results');
+            const includeQuran = document.getElementById('include-quran').checked;
+            const includeHadith = document.getElementById('include-hadith').checked;
+            const query = searchInput.value.trim();
+
+            if (!query) {
+                resultsDiv.innerHTML = '<div class="text-center text-red-500 py-8">Please enter a search query</div>';
+                return;
+            }
+
+            // Show loading
+            resultsDiv.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-600">Searching across Quran & Hadith...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/search/unified', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_n: 10,
+                        include_quran: includeQuran,
+                        include_hadith: includeHadith
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<div class="text-center text-red-500 py-8">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                // Display results
+                let resultsHTML = `
+                    <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-gray-700">
+                            Found <strong>${data.results.length}</strong> most relevant results for:
+                            <strong class="text-blue-600">"${data.query}"</strong>
+                        </p>
+                    </div>
+                `;
+
+                data.results.forEach((result, index) => {
+                    const similarityPercent = (result.similarity * 100).toFixed(1);
+                    const isQuran = result.source === 'Quran';
+                    const badge = isQuran ?
+                        '<span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">QURAN</span>' :
+                        '<span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">HADITH</span>';
+
+                    const ref = isQuran ? `Surah ${result.surah}, Ayat ${result.ayat}` : result.reference;
+
+                    resultsHTML += `
+                        <div class="bg-white border-l-4 ${isQuran ? 'border-green-500' : 'border-blue-500'} rounded-lg shadow-md p-6 hover:shadow-lg transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    ${badge}
+                                    <span class="ml-2 text-sm font-semibold text-gray-700">${ref}</span>
+                                    <span class="ml-2 text-sm text-gray-500">${similarityPercent}% match</span>
+                                </div>
+                                <span class="text-2xl font-bold text-gray-300">#${index + 1}</span>
+                            </div>
+                            <p class="text-gray-800 leading-relaxed text-lg">
+                                ${result.text}
+                            </p>
+                            ${result.question ? `<p class="mt-2 text-sm italic text-gray-600">Q: ${result.question}</p>` : ''}
+                        </div>
+                    `;
+                });
+
+                resultsDiv.innerHTML = resultsHTML;
+
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <p class="font-semibold">Error performing search</p>
+                        <p class="text-sm mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+</html>
