@@ -4,16 +4,27 @@ A comprehensive Islamic texts application combining the complete Quran with auth
 
 ## Features
 
+### Quran Database
 - **Complete Quran**: 6,236 verses in 88 translations across 23 languages
+- **99 Names of Allah**: Complete with meanings
+- **Surah Metadata**: Detailed information for all 114 surahs
+
+### Hadith Database (Enhanced)
 - **Authentic Hadiths**: 15,432 hadiths from 4 major collections
   - Sahih al-Bukhari (7,249 hadiths)
   - Sahih Muslim (2,917 hadiths)
   - Jami at-Tirmidhi (3,917 hadiths)
   - Musnad Ahmad (1,349 hadiths)
+- **Unified Schema**: Single table for all collections with optimized queries
+- **Topic Classification**: Browse hadiths by subject (Prayer, Fasting, Charity, etc.)
+- **Similar Hadiths**: Discover related teachings across different collections
+- **Smart Filtering**: Search by collection, topic, or both
+
+### Search Capabilities
 - **AI-Powered Semantic Search**: Find verses and hadiths by meaning, not just keywords
+- **Topic-Based Search**: Filter results by subject matter
+- **Cross-Reference Discovery**: Find similar hadiths automatically
 - **Fuzzy Search**: Fast client-side searching with Fuse.js
-- **99 Names of Allah**: Complete with meanings
-- **Surah Metadata**: Detailed information for all 114 surahs
 
 ## Tech Stack
 
@@ -105,6 +116,9 @@ GET  /quran/names_of_allah
 GET  /hadith/collections
 GET  /hadith/{collection}?page=1&per_page=10
      Collections: bukhari, muslim, ahmad, tirmidhi
+GET  /hadith/topics/list
+GET  /hadith/topic/{topic}?page=1&per_page=10
+GET  /hadith/{id}/similar?top_n=5
 ```
 
 ### Search Endpoints (POST)
@@ -113,7 +127,7 @@ POST /search/quran
      Body: {"query": "mercy", "top_n": 5}
 
 POST /search/hadith
-     Body: {"query": "prayer", "collection": "all", "top_n": 5}
+     Body: {"query": "prayer", "collection": "all", "topic": "Prayer", "top_n": 5}
 
 POST /search/unified
      Body: {"query": "charity", "top_n": 10, "include_quran": true, "include_hadith": true}

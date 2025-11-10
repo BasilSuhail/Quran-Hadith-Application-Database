@@ -74,7 +74,7 @@ class UnifiedSearch:
         similarities.sort(key=lambda x: x['similarity'], reverse=True)
         return similarities[:top_n]
 
-    def search_hadith(self, query, collection='all', top_n=5):
+    def search_hadith(self, query, collection='all', top_n=5, topic=None):
         """
         Search Hadith collections using semantic similarity
 
@@ -82,6 +82,7 @@ class UnifiedSearch:
             query (str): Search query
             collection (str): 'all', 'bukhari', 'muslim', 'ahmad', or 'tirmidhi'
             top_n (int): Number of results to return
+            topic (str): Optional topic filter (e.g., 'Prayer', 'Fasting')
 
         Returns:
             list: Top N most similar hadiths
@@ -92,37 +93,40 @@ class UnifiedSearch:
         conn = sqlite3.connect(self.hadith_db_path)
         cursor = conn.cursor()
 
-        # Determine which collections to search
-        collections_to_search = []
-        if collection == 'all':
-            collections_to_search = ['bukhari', 'muslim', 'ahmad', 'tirmidhi']
-        else:
-            collections_to_search = [collection]
+        # Build query with optional filters
+        query_sql = "SELECT id, collection, hadith_text, reference, question, topic, embedding FROM hadiths WHERE embedding IS NOT NULL"
+        params = []
 
-        all_results = []
+        if collection != 'all':
+            query_sql += " AND collection = ?"
+            params.append(collection)
 
-        for coll_name in collections_to_search:
-            table_name = f"hadith_{coll_name}"
+        if topic:
+            query_sql += " AND topic = ?"
+            params.append(topic)
 
-            try:
-                cursor.execute(f"SELECT id, hadith_text, reference, question, embedding FROM {table_name}")
-                hadiths = cursor.fetchall()
+        try:
+            cursor.execute(query_sql, params)
+            hadiths = cursor.fetchall()
 
-                for hadith_id, text, ref, question, embedding_blob in hadiths:
-                    if embedding_blob:
-                        hadith_embedding = np.frombuffer(embedding_blob, dtype=np.float32)
-                        similarity = 1 - cosine(query_embedding, hadith_embedding)
-                        all_results.append({
-                            'source': 'Hadith',
-                            'collection': coll_name.capitalize(),
-                            'id': hadith_id,
-                            'text': text,
-                            'reference': ref,
-                            'question': question,
-                            'similarity': float(similarity)
-                        })
-            except Exception as e:
-                print(f"Error searching {coll_name}: {e}")
+            all_results = []
+            for hadith_id, coll, text, ref, question, topic_val, embedding_blob in hadiths:
+                hadith_embedding = np.frombuffer(embedding_blob, dtype=np.float32)
+                similarity = 1 - cosine(query_embedding, hadith_embedding)
+                all_results.append({
+                    'source': 'Hadith',
+                    'collection': coll.capitalize(),
+                    'id': hadith_id,
+                    'text': text,
+                    'reference': ref,
+                    'question': question,
+                    'topic': topic_val,
+                    'similarity': float(similarity)
+                })
+
+        except Exception as e:
+            print(f"Error searching hadiths: {e}")
+            all_results = []
 
         conn.close()
 
@@ -176,6 +180,143 @@ class UnifiedSearch:
         all_results.sort(key=lambda x: x['similarity'], reverse=True)
 
         return all_results[:top_n]
+
+    def get_similar_hadiths(self, hadith_id, top_n=5):
+        """
+        Get hadiths that are similar to a given hadith
+
+        Args:
+            hadith_id (int): ID of the hadith
+            top_n (int): Number of similar hadiths to return
+
+        Returns:
+            list: Similar hadiths with similarity scores
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Get similar hadiths from the pre-computed table
+            cursor.execute('''
+                SELECT h.id, h.collection, h.hadith_text, h.reference, h.topic, s.similarity_score
+                FROM similar_hadiths s
+                JOIN hadiths h ON s.similar_hadith_id = h.id
+                WHERE s.hadith_id = ?
+                ORDER BY s.similarity_score DESC
+                LIMIT ?
+            ''', (hadith_id, top_n))
+
+            results = []
+            for hid, coll, text, ref, topic, score in cursor.fetchall():
+                results.append({
+                    'id': hid,
+                    'collection': coll.capitalize(),
+                    'text': text,
+                    'reference': ref,
+                    'topic': topic,
+                    'similarity': float(score)
+                })
+
+            return results
+
+        except Exception as e:
+            print(f"Error fetching similar hadiths: {e}")
+            return []
+
+        finally:
+            conn.close()
+
+    def get_topics(self):
+        """
+        Get all available topics with hadith counts
+
+        Returns:
+            list: Topics with counts
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('''
+                SELECT topic, COUNT(*) as count
+                FROM hadiths
+                WHERE topic IS NOT NULL
+                GROUP BY topic
+                ORDER BY count DESC
+            ''')
+
+            topics = []
+            for topic, count in cursor.fetchall():
+                topics.append({
+                    'topic': topic,
+                    'count': count
+                })
+
+            return topics
+
+        except Exception as e:
+            print(f"Error fetching topics: {e}")
+            return []
+
+        finally:
+            conn.close()
+
+    def get_hadiths_by_topic(self, topic, page=1, per_page=10):
+        """
+        Browse hadiths by topic with pagination
+
+        Args:
+            topic (str): Topic name
+            page (int): Page number
+            per_page (int): Results per page
+
+        Returns:
+            dict: Paginated results
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Get total count
+            cursor.execute('SELECT COUNT(*) FROM hadiths WHERE topic = ?', (topic,))
+            total = cursor.fetchone()[0]
+
+            # Get paginated results
+            offset = (page - 1) * per_page
+            cursor.execute('''
+                SELECT id, collection, hadith_text, reference, question, grade
+                FROM hadiths
+                WHERE topic = ?
+                ORDER BY collection, id
+                LIMIT ? OFFSET ?
+            ''', (topic, per_page, offset))
+
+            hadiths = []
+            for hid, coll, text, ref, question, grade in cursor.fetchall():
+                hadiths.append({
+                    'id': hid,
+                    'collection': coll.capitalize(),
+                    'text': text,
+                    'reference': ref,
+                    'question': question,
+                    'grade': grade
+                })
+
+            return {
+                'topic': topic,
+                'hadiths': hadiths,
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': (total + per_page - 1) // per_page
+            }
+
+        except Exception as e:
+            print(f"Error fetching hadiths by topic: {e}")
+            return {'hadiths': [], 'total': 0}
+
+        finally:
+            conn.close()
 
 
 def main():

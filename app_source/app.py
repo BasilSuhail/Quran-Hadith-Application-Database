@@ -140,20 +140,20 @@ def get_hadiths_by_collection(collection):
         return jsonify({'error': 'Invalid collection'}), 400
 
     conn = get_hadith_connection()
-    table_name = f"hadith_{collection}"
 
     # Get total count
-    total = conn.execute(f'SELECT COUNT(*) FROM {table_name}').fetchone()[0]
+    total = conn.execute('SELECT COUNT(*) FROM hadiths WHERE collection = ?', (collection,)).fetchone()[0]
 
     # Get paginated results
     offset = (page - 1) * per_page
-    query = f'''
+    query = '''
         SELECT id, hadith_text, reference, book_number, hadith_number,
-               grade, question_id, question
-        FROM {table_name}
-        LIMIT {per_page} OFFSET {offset}
+               grade, question_id, question, topic
+        FROM hadiths
+        WHERE collection = ?
+        LIMIT ? OFFSET ?
     '''
-    hadiths = conn.execute(query).fetchall()
+    hadiths = conn.execute(query, (collection, per_page, offset)).fetchall()
     conn.close()
 
     return jsonify({
@@ -163,6 +163,45 @@ def get_hadiths_by_collection(collection):
         'per_page': per_page,
         'total': total,
         'total_pages': (total + per_page - 1) // per_page
+    })
+
+
+@app.route('/hadith/topics/list')
+def get_hadith_topics():
+    """Get all available hadith topics with counts"""
+    topics = unified_search.get_topics()
+    return jsonify({
+        'topics': topics,
+        'total_topics': len(topics)
+    })
+
+
+@app.route('/hadith/topic/<topic>')
+def get_hadiths_by_topic(topic):
+    """
+    Browse hadiths by topic
+    Query params: page, per_page
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+
+    results = unified_search.get_hadiths_by_topic(topic, page, per_page)
+    return jsonify(results)
+
+
+@app.route('/hadith/<int:hadith_id>/similar')
+def get_similar_hadiths_endpoint(hadith_id):
+    """
+    Get hadiths similar to a given hadith
+    Query params: top_n (default: 5)
+    """
+    top_n = request.args.get('top_n', 5, type=int)
+
+    similar = unified_search.get_similar_hadiths(hadith_id, top_n)
+    return jsonify({
+        'hadith_id': hadith_id,
+        'similar_hadiths': similar,
+        'count': len(similar)
     })
 
 
@@ -200,23 +239,25 @@ def search_quran():
 def search_hadith():
     """
     Semantic search in Hadith collections
-    Body: {"query": "your search", "collection": "all", "top_n": 5}
+    Body: {"query": "your search", "collection": "all", "top_n": 5, "topic": "Prayer"}
     """
     try:
         data = request.get_json()
         query = data.get('query', '')
         collection = data.get('collection', 'all')
         top_n = data.get('top_n', 5)
+        topic = data.get('topic')
 
         if not query:
             return jsonify({'error': 'Query is required'}), 400
 
-        results = unified_search.search_hadith(query, collection, top_n)
+        results = unified_search.search_hadith(query, collection, top_n, topic)
 
         return jsonify({
             'query': query,
             'source': 'hadith',
             'collection': collection,
+            'topic': topic,
             'results': results
         })
 
