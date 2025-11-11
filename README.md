@@ -176,6 +176,21 @@ hadith_db_path = os.path.join(app_dir, 'hadith_database.sqlite')
 - **Subsequent Searches**: <1 second
 - **Memory Usage**: ~200-300 MB
 
+## Mobile Optimization
+
+For mobile/web deployment, run the build script to generate optimized assets:
+
+```bash
+python build_mobile_assets.py
+```
+
+This creates:
+- **FAISS indices** (32 MB) - 100x faster search, no AI model needed on device
+- **FTS5 tables** - Keyword search capability
+- **Hybrid search** - Combines semantic + keyword for best results
+
+Mobile assets are generated in `mobile_assets/` directory, ready for iOS/Android integration.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

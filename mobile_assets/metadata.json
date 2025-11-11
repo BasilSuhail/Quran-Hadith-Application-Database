@@ -1,0 +1,22 @@
+{
+  "generated_at": "2025-11-10T23:51:37.324790",
+  "model": "all-MiniLM-L6-v2",
+  "embedding_dimension": 384,
+  "quran": {
+    "total_verses": 6236,
+    "index_file": "quran.index",
+    "index_size_mb": 9.13,
+    "id_mapping_file": "quran_id_mapping.json",
+    "fts5_enabled": true
+  },
+  "hadith": {
+    "total_hadiths": 15432,
+    "index_file": "hadith.index",
+    "index_size_mb": 22.61,
+    "id_mapping_file": "hadith_id_mapping.json",
+    "fts5_enabled": true,
+    "topics_available": true
+  },
+  "mobile_ready": true,
+  "no_model_needed_on_device": true
+}
