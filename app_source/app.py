@@ -190,7 +190,7 @@ def get_hadiths_by_collection(collection):
 @app.route('/hadith/topics/list')
 def get_hadith_topics():
     """Get all available hadith topics with counts"""
-    topics = unified_search.get_topics()
+    topics = hybrid_search.get_topics()
     return jsonify({
         'topics': topics,
         'total_topics': len(topics)
@@ -206,7 +206,7 @@ def get_hadiths_by_topic(topic):
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
 
-    results = unified_search.get_hadiths_by_topic(topic, page, per_page)
+    results = hybrid_search.get_hadiths_by_topic(topic, page, per_page)
     return jsonify(results)
 
 
@@ -218,7 +218,7 @@ def get_similar_hadiths_endpoint(hadith_id):
     """
     top_n = request.args.get('top_n', 5, type=int)
 
-    similar = unified_search.get_similar_hadiths(hadith_id, top_n)
+    similar = hybrid_search.get_similar_hadiths(hadith_id, top_n)
     return jsonify({
         'hadith_id': hadith_id,
         'similar_hadiths': similar,
