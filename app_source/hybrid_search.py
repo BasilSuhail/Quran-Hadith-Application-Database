@@ -56,6 +56,26 @@ class HybridSearch:
             self.model = SentenceTransformer(model_name)
             print(f"✓ Model loaded: {model_name}")
 
+    def encode_query(self, query: str) -> np.ndarray:
+        """
+        Encode a text query into an embedding vector
+
+        Args:
+            query: Text query to encode
+
+        Returns:
+            numpy array of query embedding
+
+        Raises:
+            RuntimeError: If model is not loaded
+        """
+        if self.model is None:
+            raise RuntimeError(
+                "Model not loaded. Initialize HybridSearch with load_model=True "
+                "or provide pre-computed query embeddings."
+            )
+        return self.model.encode(query)
+
     def load_quran_index(self):
         """Lazy load Quran FAISS index"""
         if self.quran_index is None:
