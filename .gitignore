@@ -1,5 +1,4 @@
 # Database files (too large for Git)
-*.sqlite
 *.sqlite3
 *.db
 
