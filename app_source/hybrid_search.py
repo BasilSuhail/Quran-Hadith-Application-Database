@@ -360,6 +360,218 @@ class HybridSearch:
         conn.close()
         return results
 
+    def get_topics(self):
+        """
+        Get all available topics with hadith counts
+
+        Returns:
+            list: Topics with counts
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('''
+                SELECT topic, COUNT(*) as count
+                FROM hadiths
+                WHERE topic IS NOT NULL
+                GROUP BY topic
+                ORDER BY count DESC
+            ''')
+
+            topics = []
+            for topic, count in cursor.fetchall():
+                topics.append({
+                    'topic': topic,
+                    'count': count
+                })
+
+            return topics
+
+        except Exception as e:
+            print(f"Error fetching topics: {e}")
+            return []
+
+        finally:
+            conn.close()
+
+    def get_hadiths_by_topic(self, topic, page=1, per_page=10):
+        """
+        Browse hadiths by topic with pagination
+
+        Args:
+            topic (str): Topic name
+            page (int): Page number
+            per_page (int): Results per page
+
+        Returns:
+            dict: Paginated results
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Get total count
+            cursor.execute('SELECT COUNT(*) FROM hadiths WHERE topic = ?', (topic,))
+            total = cursor.fetchone()[0]
+
+            # Get paginated results
+            offset = (page - 1) * per_page
+            cursor.execute('''
+                SELECT id, collection, hadith_text, reference, question, grade
+                FROM hadiths
+                WHERE topic = ?
+                ORDER BY collection, id
+                LIMIT ? OFFSET ?
+            ''', (topic, per_page, offset))
+
+            hadiths = []
+            for hid, coll, text, ref, question, grade in cursor.fetchall():
+                hadiths.append({
+                    'id': hid,
+                    'collection': coll.capitalize(),
+                    'text': text,
+                    'reference': ref,
+                    'question': question,
+                    'grade': grade
+                })
+
+            return {
+                'topic': topic,
+                'hadiths': hadiths,
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': (total + per_page - 1) // per_page
+            }
+
+        except Exception as e:
+            print(f"Error fetching hadiths by topic: {e}")
+            return {'hadiths': [], 'total': 0}
+
+        finally:
+            conn.close()
+
+    def get_similar_hadiths(self, hadith_id, top_n=5):
+        """
+        Get hadiths that are similar to a given hadith
+
+        Args:
+            hadith_id (int): ID of the hadith
+            top_n (int): Number of similar hadiths to return
+
+        Returns:
+            list: Similar hadiths with similarity scores
+        """
+        conn = sqlite3.connect(self.hadith_db_path)
+        cursor = conn.cursor()
+
+        try:
+            # Get similar hadiths from the pre-computed table
+            cursor.execute('''
+                SELECT h.id, h.collection, h.hadith_text, h.reference, h.topic, s.similarity_score
+                FROM similar_hadiths s
+                JOIN hadiths h ON s.similar_hadith_id = h.id
+                WHERE s.hadith_id = ?
+                ORDER BY s.similarity_score DESC
+                LIMIT ?
+            ''', (hadith_id, top_n))
+
+            results = []
+            for hid, coll, text, ref, topic, score in cursor.fetchall():
+                results.append({
+                    'id': hid,
+                    'collection': coll.capitalize(),
+                    'text': text,
+                    'reference': ref,
+                    'topic': topic,
+                    'similarity': float(score)
+                })
+
+            return results
+
+        except Exception as e:
+            print(f"Error fetching similar hadiths: {e}")
+            return []
+
+        finally:
+            conn.close()
+
+    def search_quran(self, query: str, top_n: int = 5) -> List[Dict]:
+        """
+        Search Quran only (convenience method for backward compatibility)
+
+        Args:
+            query: Search query
+            top_n: Number of results
+
+        Returns:
+            List of Quran search results
+        """
+        return self.hybrid_search_quran(query, top_n=top_n)
+
+    def search_hadith(self, query: str, collection: str = 'all', top_n: int = 5, topic: str = None) -> List[Dict]:
+        """
+        Search Hadith only (convenience method for backward compatibility)
+
+        Args:
+            query: Search query
+            collection: Collection filter
+            top_n: Number of results
+            topic: Topic filter
+
+        Returns:
+            List of Hadith search results
+        """
+        return self.hybrid_search_hadith(query, top_n=top_n, collection=collection, topic=topic)
+
+    def search_all(self, query: str, quran_results: int = 5, hadith_results: int = 5, collection: str = 'all') -> Dict:
+        """
+        Search both Quran and Hadith databases
+
+        Args:
+            query: Search query
+            quran_results: Number of Quran results
+            hadith_results: Number of Hadith results
+            collection: Hadith collection filter
+
+        Returns:
+            dict: Results from both sources
+        """
+        return {
+            'query': query,
+            'quran': self.search_quran(query, quran_results),
+            'hadith': self.search_hadith(query, collection, hadith_results)
+        }
+
+    def search_unified(self, query: str, top_n: int = 10, include_quran: bool = True, include_hadith: bool = True) -> List[Dict]:
+        """
+        Search and merge results from both sources into a single ranked list
+
+        Args:
+            query: Search query
+            top_n: Total number of results
+            include_quran: Include Quran results
+            include_hadith: Include Hadith results
+
+        Returns:
+            list: Unified ranked list of results
+        """
+        all_results = []
+
+        if include_quran:
+            quran_results = self.search_quran(query, top_n * 2)  # Get more, we'll filter later
+            all_results.extend(quran_results)
+
+        if include_hadith:
+            hadith_results = self.search_hadith(query, 'all', top_n * 2)
+            all_results.extend(hadith_results)
+
+        # Sort all results by similarity
+        all_results.sort(key=lambda x: x['similarity'], reverse=True)
+
+        return all_results[:top_n]
+
 
 def main():
     """Demo of hybrid search"""
