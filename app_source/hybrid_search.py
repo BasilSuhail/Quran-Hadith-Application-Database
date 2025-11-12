@@ -251,10 +251,23 @@ class HybridSearch:
         fused = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return fused
 
-    def hybrid_search_quran(self, query: str, query_embedding: np.ndarray, top_n: int = 10) -> List[Dict]:
+    def hybrid_search_quran(self, query: str, query_embedding: Optional[np.ndarray] = None,
+                            top_n: int = 10) -> List[Dict]:
         """
         Hybrid search: Combines semantic + keyword search for Quran
+
+        Args:
+            query: Text query string
+            query_embedding: Pre-computed query embedding (optional, will encode if model loaded)
+            top_n: Number of results to return
+
+        Returns:
+            List of search results
         """
+        # Encode query if embedding not provided
+        if query_embedding is None:
+            query_embedding = self.encode_query(query)
+
         # Get results from both search methods
         semantic_results = self.semantic_search_quran(query_embedding, top_n)
         keyword_results = self.keyword_search_quran(query, top_n)
@@ -291,11 +304,25 @@ class HybridSearch:
         conn.close()
         return results
 
-    def hybrid_search_hadith(self, query: str, query_embedding: np.ndarray,
+    def hybrid_search_hadith(self, query: str, query_embedding: Optional[np.ndarray] = None,
                              top_n: int = 10, collection: str = 'all', topic: str = None) -> List[Dict]:
         """
         Hybrid search: Combines semantic + keyword search for Hadith
+
+        Args:
+            query: Text query string
+            query_embedding: Pre-computed query embedding (optional, will encode if model loaded)
+            top_n: Number of results to return
+            collection: Filter by collection (default: 'all')
+            topic: Filter by topic (optional)
+
+        Returns:
+            List of search results
         """
+        # Encode query if embedding not provided
+        if query_embedding is None:
+            query_embedding = self.encode_query(query)
+
         # Get results from both methods
         semantic_results = self.semantic_search_hadith(query_embedding, top_n, topic)
         keyword_results = self.keyword_search_hadith(query, top_n, collection, topic)
