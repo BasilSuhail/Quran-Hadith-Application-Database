@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, jsonify
 import sqlite3
 import os
 import sys
-from unified_search import UnifiedSearch
+from hybrid_search import HybridSearch
 
 app = Flask(__name__)
 
@@ -17,13 +17,34 @@ app = Flask(__name__)
 app_dir = os.path.dirname(os.path.abspath(__file__))
 quran_db_path = os.path.join(app_dir, 'quran_database.sqlite')
 hadith_db_path = os.path.join(app_dir, 'hadith_database.sqlite')
+assets_dir = os.path.join(os.path.dirname(app_dir), 'mobile_assets')
 
-# Initialize unified search
-print("Initializing unified search system...")
-unified_search = UnifiedSearch(quran_db_path, hadith_db_path)
-# Pre-load the model at startup
-unified_search.load_model()
-print("Search system ready!")
+# Initialize hybrid search with model loaded at startup (web server mode)
+print("="*80)
+print("Initializing Hybrid Search System (Web Server Mode)")
+print("="*80)
+print(f"Quran DB: {quran_db_path}")
+print(f"Hadith DB: {hadith_db_path}")
+print(f"Assets: {assets_dir}")
+print()
+
+hybrid_search = HybridSearch(
+    quran_db_path,
+    hadith_db_path,
+    assets_dir=assets_dir,
+    load_model=True  # Load model at startup for web server
+)
+
+# Pre-load FAISS indices at startup
+print("\nPre-loading FAISS indices...")
+hybrid_search.load_quran_index()
+hybrid_search.load_hadith_index()
+
+print()
+print("="*80)
+print("✓ Search system ready! (Model + FAISS indices loaded)")
+print("="*80)
+print()
 
 
 def get_quran_connection():
