@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 """
+DEPRECATED: This script has been replaced by build_database.py
+==============================================================
+
+Please use build_database.py instead, which supports both mobile and web deployments.
+
+This file is kept for backward compatibility only.
+
+---
+
 Mobile-Optimized Data Pipeline for Quran & Hadith App
 ======================================================
 This script prepares all assets for mobile deployment:

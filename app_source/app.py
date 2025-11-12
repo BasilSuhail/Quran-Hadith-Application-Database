@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unified Quran & Hadith Application
+qh-db: Quran & Hadith Database API
 Combines Quran translations (88 translations, 23 languages) with Hadith collections (4 major books)
 Includes semantic search across both databases using AI embeddings
 """
@@ -380,7 +380,7 @@ def get_stats():
 
 if __name__ == '__main__':
     print("=" * 80)
-    print("UNIFIED QURAN & HADITH APPLICATION")
+    print("qh-db: QURAN & HADITH DATABASE API")
     print("=" * 80)
     print(f"\nQuran Database: {quran_db_path}")
     print(f"Hadith Database: {hadith_db_path}")

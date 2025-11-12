@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Hybrid Search Engine for Quran & Hadith
-========================================
+qh-db: Hybrid Search Engine
+============================
 Combines semantic search (FAISS) with keyword search (FTS5) for best results
 
 Optimized for BOTH mobile and web deployments:

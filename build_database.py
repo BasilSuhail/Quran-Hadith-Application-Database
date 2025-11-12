@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Unified Database Builder for Quran & Hadith App
-================================================
+qh-db: Unified Database Builder
+================================
 This script prepares production-ready databases for BOTH mobile and web deployments:
 
 1. Imports CSV data (Names.csv, surah_info.csv) into quran_database.sqlite
@@ -402,7 +402,7 @@ class DatabaseBuilder:
         Execute the complete data pipeline
         """
         print("\n" + "="*80)
-        print("UNIFIED DATABASE BUILDER - QURAN & HADITH APP")
+        print("qh-db: UNIFIED DATABASE BUILDER")
         print("="*80)
         print(f"Output directory: {self.output_dir}")
         print("="*80)

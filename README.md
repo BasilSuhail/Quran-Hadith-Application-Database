@@ -1,6 +1,6 @@
-# Quran & Hadith Application
+# qh-db: Quran & Hadith Database
 
-A comprehensive Islamic texts application combining the complete Quran with authentic Hadith collections, powered by AI semantic search technology.
+A comprehensive Islamic texts database API combining the complete Quran with authentic Hadith collections, powered by AI semantic search technology.
 
 ## Features
 
