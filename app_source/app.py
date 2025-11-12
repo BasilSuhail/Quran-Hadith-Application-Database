@@ -233,7 +233,7 @@ def get_similar_hadiths_endpoint(hadith_id):
 @app.route('/search/quran', methods=['POST'])
 def search_quran():
     """
-    Semantic search in Quran translations
+    Hybrid search in Quran translations (FAISS + FTS5)
     Body: {"query": "your search", "top_n": 5}
     """
     try:
@@ -244,7 +244,7 @@ def search_quran():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
 
-        results = unified_search.search_quran(query, top_n)
+        results = hybrid_search.search_quran(query, top_n)
 
         return jsonify({
             'query': query,
@@ -259,7 +259,7 @@ def search_quran():
 @app.route('/search/hadith', methods=['POST'])
 def search_hadith():
     """
-    Semantic search in Hadith collections
+    Hybrid search in Hadith collections (FAISS + FTS5)
     Body: {"query": "your search", "collection": "all", "top_n": 5, "topic": "Prayer"}
     """
     try:
@@ -272,7 +272,7 @@ def search_hadith():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
 
-        results = unified_search.search_hadith(query, collection, top_n, topic)
+        results = hybrid_search.search_hadith(query, collection, top_n, topic)
 
         return jsonify({
             'query': query,
@@ -302,7 +302,7 @@ def search_all():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
 
-        results = unified_search.search_all(query, quran_results, hadith_results, collection)
+        results = hybrid_search.search_all(query, quran_results, hadith_results, collection)
 
         return jsonify(results)
 
@@ -326,7 +326,7 @@ def search_unified():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
 
-        results = unified_search.search_unified(query, top_n, include_quran, include_hadith)
+        results = hybrid_search.search_unified(query, top_n, include_quran, include_hadith)
 
         return jsonify({
             'query': query,
