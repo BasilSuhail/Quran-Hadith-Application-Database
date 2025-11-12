@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-11-10T23:51:37.324790",
+  "generated_at": "2025-11-12T13:50:20.057776",
   "model": "all-MiniLM-L6-v2",
   "embedding_dimension": 384,
   "quran": {
@@ -7,7 +7,8 @@
     "index_file": "quran.index",
     "index_size_mb": 9.13,
     "id_mapping_file": "quran_id_mapping.json",
-    "fts5_enabled": true
+    "fts5_enabled": true,
+    "csv_imported": true
   },
   "hadith": {
     "total_hadiths": 15432,
@@ -17,6 +18,10 @@
     "fts5_enabled": true,
     "topics_available": true
   },
-  "mobile_ready": true,
-  "no_model_needed_on_device": true
+  "deployment": {
+    "mobile_ready": true,
+    "web_ready": true,
+    "no_model_needed_on_device": true,
+    "model_only_for_query_encoding": true
+  }
 }
