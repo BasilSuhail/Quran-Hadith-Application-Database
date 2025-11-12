@@ -4,8 +4,9 @@ Hybrid Search Engine for Quran & Hadith
 ========================================
 Combines semantic search (FAISS) with keyword search (FTS5) for best results
 
-This is optimized for mobile deployment - uses pre-computed FAISS indices
-No model needed on device!
+Optimized for BOTH mobile and web deployments:
+- Mobile: Uses pre-computed FAISS indices (no model on device)
+- Web: Loads model + FAISS indices once at server startup
 """
 
 import sqlite3
@@ -13,28 +14,47 @@ import numpy as np
 import faiss
 import json
 import os
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
+from sentence_transformers import SentenceTransformer
 
 
 class HybridSearch:
     """
-    Mobile-optimized hybrid search engine
+    Unified hybrid search engine for mobile and web
     Combines:
-    - Semantic search via FAISS indices (no model needed!)
+    - Semantic search via FAISS indices
     - Keyword search via SQLite FTS5
     - Reciprocal Rank Fusion for result merging
     """
 
-    def __init__(self, quran_db_path, hadith_db_path, assets_dir='../mobile_assets'):
+    def __init__(self, quran_db_path, hadith_db_path, assets_dir='../mobile_assets',
+                 load_model=False, model_name='all-MiniLM-L6-v2'):
+        """
+        Initialize HybridSearch
+
+        Args:
+            quran_db_path: Path to quran_database.sqlite
+            hadith_db_path: Path to hadith_database.sqlite
+            assets_dir: Directory containing FAISS indices
+            load_model: If True, load sentence transformer model (for web server)
+            model_name: Model name for encoding queries (default: all-MiniLM-L6-v2)
+        """
         self.quran_db_path = quran_db_path
         self.hadith_db_path = hadith_db_path
         self.assets_dir = assets_dir
 
-        # FAISS indices and mappings (loaded on demand)
+        # FAISS indices and mappings
         self.quran_index = None
         self.quran_id_mapping = None
         self.hadith_index = None
         self.hadith_id_mapping = None
+
+        # Model for query encoding (web server only)
+        self.model = None
+        if load_model:
+            print("Loading sentence transformer model for query encoding...")
+            self.model = SentenceTransformer(model_name)
+            print(f"✓ Model loaded: {model_name}")
 
     def load_quran_index(self):
         """Lazy load Quran FAISS index"""
