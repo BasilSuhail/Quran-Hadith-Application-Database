@@ -1,7 +1,3 @@
-# Database files (too large for Git)
-*.sqlite3
-*.db
-
 # Python virtual environment
 venv/
 env/
