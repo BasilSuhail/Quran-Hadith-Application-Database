@@ -2,20 +2,45 @@
 
 A comprehensive Islamic texts database API combining the complete Quran with authentic Hadith collections, powered by AI semantic search technology.
 
-## Features
+## Quick Start
+
+Get the app running in 3 simple steps:
+
+1. **Navigate to the app directory**
+   ```bash
+   cd app_source
+   ```
+
+2. **Install dependencies** (one-time setup)
+   ```bash
+   ./venv/bin/pip install flask sentence-transformers scipy numpy faiss-cpu
+   ```
+
+3. **Run the app**
+   ```bash
+   ./venv/bin/python3 app.py
+   ```
+
+4. **Open in your browser**
+   ```
+   http://127.0.0.1:5005
+   ```
+
+That's it! The app will start in about 10-15 seconds as it loads the AI model and database indices.
+
+## What's Inside?
 
 ### Quran Database
 - **Complete Quran**: 6,236 verses in 88 translations across 23 languages
 - **99 Names of Allah**: Complete with meanings
 - **Surah Metadata**: Detailed information for all 114 surahs
 
-### Hadith Database (Enhanced)
+### Hadith Database
 - **Authentic Hadiths**: 15,432 hadiths from 4 major collections
   - Sahih al-Bukhari (7,249 hadiths)
   - Sahih Muslim (2,917 hadiths)
   - Jami at-Tirmidhi (3,917 hadiths)
   - Musnad Ahmad (1,349 hadiths)
-- **Unified Schema**: Single table for all collections with optimized queries
 - **Topic Classification**: Browse hadiths by subject (Prayer, Fasting, Charity, etc.)
 - **Similar Hadiths**: Discover related teachings across different collections
 - **Smart Filtering**: Search by collection, topic, or both
@@ -24,7 +49,6 @@ A comprehensive Islamic texts database API combining the complete Quran with aut
 - **AI-Powered Semantic Search**: Find verses and hadiths by meaning, not just keywords
 - **Topic-Based Search**: Filter results by subject matter
 - **Cross-Reference Discovery**: Find similar hadiths automatically
-- **Fuzzy Search**: Fast client-side searching with Fuse.js
 
 ## Tech Stack
 
@@ -32,164 +56,164 @@ A comprehensive Islamic texts database API combining the complete Quran with aut
 - **Frontend**: HTML, CSS (Tailwind), JavaScript
 - **Database**: SQLite (2 databases)
 - **AI Model**: Sentence Transformers (all-MiniLM-L6-v2)
-- **Search**: Fuse.js for fuzzy matching
 - **Embeddings**: 384-dimensional vectors for semantic similarity
 
-## Installation
+## Need the Raw Database Files?
+
+The SQLite database files are included in the `app_source/` directory:
+- **Quran Database**: `app_source/quran_database.sqlite` (227 MB)
+- **Hadith Database**: `app_source/hadith_database.sqlite` (93 MB)
+
+You can use these files directly with any SQLite browser or in your own projects. They contain:
+- All verses and hadiths with full text
+- Pre-computed AI embeddings for semantic search
+- Metadata and classifications
+
+**Note**: The databases are tracked with Git LFS (Large File Storage). If you clone the repo and the database files appear very small, you may need to install Git LFS:
+```bash
+git lfs install
+git lfs pull
+```
+
+## Advanced Setup (Optional)
+
+If you want to set up from scratch or customize:
 
 ### Prerequisites
-
 - Python 3.x
 - pip (Python package manager)
-- Virtual environment (recommended)
 
-### Setup
+### Manual Setup
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/BasilSuhail/Quran-Hadith-Application-Database.git
-   cd Quran-Hadith-Application-Database/app_source
+   cd Quran-Hadith-Application-Database
    ```
 
-2. **Create and activate virtual environment**
+2. **Install Git LFS for database files**
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   git lfs install
+   git lfs pull
    ```
 
-3. **Install dependencies**
+3. **Navigate to app directory**
    ```bash
-   pip install flask sentence-transformers scipy numpy
+   cd app_source
    ```
 
-4. **Download the databases**
-
-   The database files are too large for Git (270MB total). You need to generate them locally:
-
-   - **Quran Database** (`quran_database.sqlite` - 215MB): Contains all verses with embeddings
-   - **Hadith Database** (`hadith_database.sqlite` - 44MB): Contains all hadiths with embeddings
-
-   > **Note**: Database generation scripts will be provided in a future update. For now, please contact the maintainer for database files.
+4. **Install dependencies in virtual environment**
+   ```bash
+   ./venv/bin/pip install flask sentence-transformers scipy numpy faiss-cpu
+   ```
 
 5. **Run the application**
    ```bash
-   python3 app.py
+   ./venv/bin/python3 app.py
    ```
 
-6. **Open in browser**
-   ```
-   http://127.0.0.1:5005
-   ```
+## How to Use
 
-## Usage
+Once the app is running, open http://127.0.0.1:5005 in your browser.
 
-### Unified Search
-Search across both Quran and Hadith simultaneously. The AI understands context and meaning, finding relevant results even if they don't contain your exact words.
+### Search Across Quran & Hadith
+The AI-powered search understands meaning, not just keywords. Try searching for:
+- "forgiveness" → finds verses about mercy, pardoning, repentance
+- "prayer times" → finds hadiths about salah and its timings
+- "charity" → finds content about zakat, sadaqah, and giving
 
-Example:
-- Query: "forgiveness"
-- Finds: Verses about mercy, pardoning, absolution, etc.
+### Browse by Collection
+- **Quran**: View all 6,236 verses, switch between 88 translations in 23 languages
+- **Hadith**: Browse by collection (Bukhari, Muslim, Tirmidhi, Ahmad) or by topic
+- Filter and search within specific collections
 
-### Quran Translations
-- Browse all 6,236 verses
-- Switch between 88 translations in 23 languages
-- Load all verses for comprehensive searching
-- Filter by Surah
-
-### Hadith Collections
-- Search through 4 major authentic collections
-- Filter by specific collection or search all
-- View hadith text, reference, grade, and related questions
-- Load complete collections for full-text search
+### Discover Similar Content
+Click on any hadith to see related hadiths from other collections on the same topic
 
 ## API Endpoints
 
-### Quran Endpoints
-```
-GET  /quran/translations?page=1&per_page=10&surah=1
-GET  /quran/surah_info
-GET  /quran/names_of_allah
+The app provides a REST API for developers:
+
+### Main Endpoints
+- `GET /` - Web interface
+- `GET /stats` - Database statistics
+- `POST /search/unified` - Search both Quran and Hadith
+- `POST /search/quran` - Search Quran only
+- `POST /search/hadith` - Search Hadith only
+- `GET /quran/translations` - Get Quran verses (paginated)
+- `GET /quran/surah_info` - Get surah metadata
+- `GET /quran/names_of_allah` - Get 99 Names of Allah
+- `GET /hadith/collections` - List hadith collections
+- `GET /hadith/{collection}` - Get hadiths from a collection
+- `GET /hadith/topics/list` - List all hadith topics
+- `GET /hadith/{id}/similar` - Find similar hadiths
+
+### Example API Call
+```bash
+curl -X POST http://127.0.0.1:5005/search/unified \
+  -H "Content-Type: application/json" \
+  -d '{"query": "patience", "top_n": 5}'
 ```
 
-### Hadith Endpoints
-```
-GET  /hadith/collections
-GET  /hadith/{collection}?page=1&per_page=10
-     Collections: bukhari, muslim, ahmad, tirmidhi
-GET  /hadith/topics/list
-GET  /hadith/topic/{topic}?page=1&per_page=10
-GET  /hadith/{id}/similar?top_n=5
-```
-
-### Search Endpoints (POST)
-```
-POST /search/quran
-     Body: {"query": "mercy", "top_n": 5}
-
-POST /search/hadith
-     Body: {"query": "prayer", "collection": "all", "topic": "Prayer", "top_n": 5}
-
-POST /search/unified
-     Body: {"query": "charity", "top_n": 10, "include_quran": true, "include_hadith": true}
-```
-
-### Stats
-```
-GET  /stats
-```
-
-## File Structure
+## Project Structure
 
 ```
-app_source/
-├── app.py                      # Main Flask application
-├── unified_search.py           # AI-powered search engine
-├── quran_database.sqlite       # Quran database (not in repo - too large)
-├── hadith_database.sqlite      # Hadith database (not in repo - too large)
-├── Names.csv                   # 99 Names of Allah
-├── surah_info.csv              # Surah metadata
-├── templates/
-│   └── unified_app.html        # Modern responsive frontend
-└── venv/                       # Virtual environment
+qh-db/
+├── app_source/                 # Main application directory
+│   ├── app.py                  # Flask server
+│   ├── hybrid_search.py        # AI search engine
+│   ├── quran_database.sqlite   # Quran database (227 MB)
+│   ├── hadith_database.sqlite  # Hadith database (93 MB)
+│   ├── Names.csv               # 99 Names of Allah
+│   ├── surah_info.csv          # Surah metadata
+│   ├── templates/              # HTML templates
+│   └── venv/                   # Python virtual environment
+├── mobile_assets/              # Optimized FAISS indices
+├── build_database.py           # Database generation script
+├── build_mobile_assets.py      # Mobile optimization script
+└── README.md                   # This file
 ```
 
 ## Configuration
 
-### Port
-Default port is 5005. Change in `app.py`:
+Want to customize the app? Here's how:
+
+### Change Port
+Edit [app.py](app_source/app.py) and change:
 ```python
-app.run(debug=True, port=5005)
+app.run(debug=True, port=5005)  # Change 5005 to your preferred port
 ```
 
-### Database Paths
-Databases are loaded from the `app_source` directory by default. Modify in `app.py` if needed:
+### Use Different Database Files
+Edit [app.py](app_source/app.py) and modify:
 ```python
-quran_db_path = os.path.join(app_dir, 'quran_database.sqlite')
-hadith_db_path = os.path.join(app_dir, 'hadith_database.sqlite')
+quran_db_path = os.path.join(app_dir, 'your_quran_database.sqlite')
+hadith_db_path = os.path.join(app_dir, 'your_hadith_database.sqlite')
 ```
 
 ## Performance
 
-- **First Launch**: 3-5 seconds (downloads AI model ~90MB, one-time only)
-- **Subsequent Launches**: ~2 seconds
-- **First Search**: 2-3 seconds (AI warm-up)
-- **Subsequent Searches**: <1 second
-- **Memory Usage**: ~200-300 MB
+Expected performance on modern hardware:
+- **First Launch**: 10-15 seconds (loads AI model, one-time download ~90MB)
+- **Subsequent Launches**: 5-10 seconds
+- **Search Speed**: <1 second after initial load
+- **Memory Usage**: ~300-500 MB (includes AI model in memory)
 
-## Mobile Optimization
+## Mobile/Production Optimization
 
-For mobile/web deployment, run the build script to generate optimized assets:
+For mobile apps or production deployment, generate optimized FAISS indices:
 
 ```bash
 python build_mobile_assets.py
 ```
 
-This creates:
-- **FAISS indices** (32 MB) - 100x faster search, no AI model needed on device
-- **FTS5 tables** - Keyword search capability
-- **Hybrid search** - Combines semantic + keyword for best results
+Benefits:
+- **100x faster search** - No need to load heavy AI model on device
+- **Smaller footprint** - Pre-computed indices (32 MB vs 90 MB model)
+- **Hybrid search** - Combines semantic + keyword search
+- **Production ready** - Optimized for mobile and embedded use
 
-Mobile assets are generated in `mobile_assets/` directory, ready for iOS/Android integration.
+Optimized assets are saved in `mobile_assets/` directory.
 
 ## Contributing
 
